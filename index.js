@@ -20,7 +20,15 @@ const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology:
 
 const run = async () => {
     try {
+        await client.connect();
+        const mobilekitproduct = client.db("mobilekit").collection("products");
 
+        app.post('/addproduct', async (req, res) => {
+            const body = req.body
+            const result = await mobilekitproduct.insertOne(body);
+            res.send(result);
+
+        })
 
 
     } finally {
