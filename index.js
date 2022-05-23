@@ -57,7 +57,7 @@ const run = async () => {
             res.send(result);
 
         })
-        app.get('/users', async (req, res) => {
+        app.get('/users', verifyjwt, async (req, res) => {
             const result = await mobilekitusers.find().toArray();
             res.send(result)
         })
@@ -132,6 +132,12 @@ const run = async () => {
             }
 
 
+        })
+        app.delete('/user/:email', async (req, res) => {
+            const email = req.params.email;
+            const query = { email: email }
+            const result = await mobilekitusers.deleteOne(query);
+            res.send(result)
         })
 
 
