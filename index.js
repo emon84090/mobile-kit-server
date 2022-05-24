@@ -10,9 +10,8 @@ const objectId = require('mongodb').ObjectId;
 app.use(cors());
 app.use(express.json());
 
-app.get('/', (req, res) => {
-    res.send("assignent 12 server is running");
-})
+
+
 
 
 const verifyjwt = (req, res, next) => {
@@ -26,6 +25,7 @@ const verifyjwt = (req, res, next) => {
 
     jwt.verify(token, process.env.ACCESS_TOKEN, (err, decoded) => {
         if (err) {
+
             return res.status(403).send({ message: "forbidden access" })
         }
         req.decoded = decoded;
@@ -36,7 +36,10 @@ const verifyjwt = (req, res, next) => {
 }
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASSWORD}@cluster0.ml4yq.mongodb.net/?retryWrites=true&w=majority`;
+
+
 const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true, serverApi: ServerApiVersion.v1 });
+
 
 
 const run = async () => {
@@ -44,31 +47,72 @@ const run = async () => {
         await client.connect();
         const mobilekitproduct = client.db("mobilekit").collection("products");
         const mobilekitusers = client.db("mobilekit").collection("users");
+        const mobilekitorders = client.db("mobilekit").collection("orders")
 
-        app.post('/addproduct', async (req, res) => {
+        const verifyadmin = async (req, res, next) => {
+            const requester = req.decoded.email;
+
+            const requesteracount = await mobilekitusers.findOne({ email: requester });
+
+            if (requesteracount.role === "admin") {
+                next();
+            } else {
+                res.status(403).send({ message: "forbiden" })
+            }
+
+        }
+
+
+        app.post('/addproduct', verifyjwt, verifyadmin, async (req, res) => {
             const body = req.body
             const result = await mobilekitproduct.insertOne(body);
             res.send(result);
 
         })
 
-        app.get('/allproduct', verifyjwt, async (req, res) => {
-            const result = await mobilekitproduct.find().toArray();
+        app.get('/allproduct', async (req, res) => {
+
+            const result = await mobilekitproduct.find({}).toArray();
             res.send(result);
 
         })
-        app.get('/users', verifyjwt, async (req, res) => {
+
+
+
+        app.get('/allproduct/:id', verifyjwt, async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: objectId(id) }
+            const result = await mobilekitproduct.findOne(query);
+            res.send(result);
+
+        })
+
+
+        app.get('/users', verifyjwt, verifyadmin, async (req, res) => {
             const result = await mobilekitusers.find().toArray();
             res.send(result)
         })
 
-        app.delete('/delete/:id', async (req, res) => {
+        app.delete('/delete/:id', verifyjwt, verifyadmin, async (req, res) => {
             const id = req.params.id;
 
             const query = { _id: objectId(id) }
             const result = await mobilekitproduct.deleteOne(query);
 
             res.send(result);
+
+        })
+
+        app.put('/productqty', async (req, res) => {
+            const data = req.body;
+
+            const query = { _id: objectId(data.id) }
+            const updateDoc = {
+                $set: { quantity: data.qty },
+            };
+
+            const result = await mobilekitproduct.updateOne(query, updateDoc);
+            res.send(result)
 
         })
 
@@ -89,7 +133,7 @@ const run = async () => {
         })
 
 
-        app.put('/user/admin/:email', verifyjwt, async (req, res) => {
+        app.put('/user/admin/:email', verifyjwt, verifyadmin, async (req, res) => {
             const email = req.params.email;
             const requester = req.decoded.email;
             const requesterAcount = await mobilekitusers.findOne({ email: requester });
@@ -111,7 +155,7 @@ const run = async () => {
 
         })
 
-        app.put('/user/adminremove/:email', verifyjwt, async (req, res) => {
+        app.put('/user/adminremove/:email', verifyjwt, verifyadmin, async (req, res) => {
             const email = req.params.email;
             const requester = req.decoded.email;
 
@@ -133,13 +177,34 @@ const run = async () => {
 
 
         })
-        app.delete('/user/:email', async (req, res) => {
+
+        app.delete('/user/:email', verifyjwt, verifyadmin, async (req, res) => {
             const email = req.params.email;
             const query = { email: email }
             const result = await mobilekitusers.deleteOne(query);
             res.send(result)
         })
 
+
+        app.get('/admin/:email', async (req, res) => {
+            const email = req.params.email;
+
+            const users = await mobilekitusers.findOne({ email: email });
+
+            const isAdmin = users?.role === "admin";
+
+            res.send({ admin: isAdmin })
+
+        })
+
+        app.post('/order', async (req, res) => {
+
+            const data = req.body;
+            const result = await mobilekitorders.insertOne(data);
+
+            res.send(result)
+
+        })
 
     } finally {
 
@@ -148,7 +213,9 @@ const run = async () => {
 }
 
 run().catch(console.dir)
-
+app.get('/', (req, res) => {
+    res.send("assignent 12 server is running");
+})
 app.listen(port, () => {
     console.log(`your server is running on port ${port}`);
 })
