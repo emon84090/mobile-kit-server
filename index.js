@@ -78,6 +78,20 @@ const run = async () => {
         })
 
 
+        app.get('/allorder', verifyjwt, verifyadmin, async (req, res) => {
+
+            const result = await mobilekitorders.find({}).toArray();
+            res.send(result);
+
+        })
+        app.delete('/order/:id', verifyjwt, verifyadmin, async (req, res) => {
+            const id = req.params.id;
+
+            const query = { _id: objectId(id) }
+            const result = await mobilekitorders.deleteOne(query);
+            res.send(result);
+
+        })
 
         app.get('/allproduct/:id', verifyjwt, async (req, res) => {
             const id = req.params.id;
