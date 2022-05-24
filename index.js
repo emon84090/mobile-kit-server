@@ -11,7 +11,7 @@ app.use(cors());
 app.use(express.json());
 
 
-
+const stripe = require("stripe")('sk_test_51L0fKtJ9YTsnQW1SuYikyuRI0QFscPAAslgEpj37jMRYTOvQngMxvchpjn9PWtIZYSszuqdsIOoF7Bprj4mVnSmR00nV7H9XHg');
 
 
 const verifyjwt = (req, res, next) => {
@@ -35,6 +35,8 @@ const verifyjwt = (req, res, next) => {
 
 }
 
+
+
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASSWORD}@cluster0.ml4yq.mongodb.net/?retryWrites=true&w=majority`;
 
 
@@ -47,7 +49,8 @@ const run = async () => {
         await client.connect();
         const mobilekitproduct = client.db("mobilekit").collection("products");
         const mobilekitusers = client.db("mobilekit").collection("users");
-        const mobilekitorders = client.db("mobilekit").collection("orders")
+        const mobilekitorders = client.db("mobilekit").collection("orders");
+        const mobilekipayment = client.db("mobilekit").collection("payment")
 
         const verifyadmin = async (req, res, next) => {
             const requester = req.decoded.email;
@@ -233,6 +236,64 @@ const run = async () => {
             const result = await mobilekitorders.insertOne(data);
 
             res.send(result)
+
+        });
+
+
+
+        app.get('/payment', verifyjwt, async (req, res) => {
+            const id = req.query.id;
+            const query = { _id: ObjectId(id) }
+            const result = await mobilekitorders.findOne(query);
+            res.send(result);
+        })
+
+
+        app.post("/create-payment-intent", verifyjwt, async (req, res) => {
+            const items = req.body;
+            const price = parseInt(items.price)
+            const amount = price * 100;
+
+
+            const paymentIntent = await stripe.paymentIntents.create({
+                amount: amount,
+                currency: "usd",
+                payment_method_types: ['card']
+            });
+
+            res.send({
+                clientSecret: paymentIntent.client_secret,
+            });
+        });
+
+        app.patch('/order/:id', verifyjwt, async (req, res) => {
+            const id = req.params.id;
+            const payment = req.body;
+
+            const query = { _id: ObjectId(id) };
+            const updateDoc = {
+                $set: {
+                    transectionid: payment.transectionId,
+                    status: "pending",
+
+                }
+            }
+            const options = { upsert: true };
+
+            const updateorder = await mobilekitorders.updateOne(query, updateDoc, options);
+            res.send(updateorder)
+
+        })
+
+        app.put('/approveorder/:id', async (req, res) => {
+            const id = req.params.id;
+
+            const query = { _id: objectId(id) }
+            const updateDoc = {
+                $set: { status: "shiped", },
+            };
+            const updateorder = await mobilekitorders.updateOne(query, updateDoc);
+            res.send(updateorder)
 
         })
 
