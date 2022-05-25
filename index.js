@@ -50,7 +50,8 @@ const run = async () => {
         const mobilekitproduct = client.db("mobilekit").collection("products");
         const mobilekitusers = client.db("mobilekit").collection("users");
         const mobilekitorders = client.db("mobilekit").collection("orders");
-        const mobilekipayment = client.db("mobilekit").collection("payment")
+        const mobilekipayment = client.db("mobilekit").collection("payment");
+        const mobilekitreview = client.db("mobilekit").collection("review");
 
         const verifyadmin = async (req, res, next) => {
             const requester = req.decoded.email;
@@ -294,6 +295,15 @@ const run = async () => {
             };
             const updateorder = await mobilekitorders.updateOne(query, updateDoc);
             res.send(updateorder)
+
+        })
+
+
+        app.post('/review', async (req, res) => {
+            const data = req.body;
+            const result = await mobilekitreview.insertOne(data);
+            res.send(result);
+
 
         })
 
