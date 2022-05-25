@@ -299,13 +299,47 @@ const run = async () => {
         })
 
 
-        app.post('/review', async (req, res) => {
+        app.post('/review', verifyjwt, async (req, res) => {
             const data = req.body;
             const result = await mobilekitreview.insertOne(data);
             res.send(result);
 
 
         })
+
+        app.get('/review', async (req, res) => {
+
+            const result = await mobilekitreview.find({}).toArray();
+            res.send(result);
+
+
+        })
+
+        app.get('/users/:email', async (req, res) => {
+            const email = req.params.email;
+
+            const query = { email: email };
+            const result = await mobilekitusers.findOne(query);
+            res.send(result);
+
+
+        })
+
+        app.put('/profiledata/:email', verifyjwt, async (req, res) => {
+            const email = req.params.email;
+            const query = { email: email };
+            const newdata = req.body;
+            const updateDoc = {
+                $set: {
+                    newdata
+                }
+            }
+            const options = { upsert: true };
+            const updateorder = await mobilekitusers.updateOne(query, updateDoc, options);
+            res.send(updateorder)
+
+        })
+
 
     } finally {
 
