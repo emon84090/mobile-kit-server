@@ -137,7 +137,7 @@ const run = async () => {
 
         })
 
-        app.put('/productqty', async (req, res) => {
+        app.put('/productqty', verifyjwt, async (req, res) => {
             const data = req.body;
 
             const query = { _id: objectId(data.id) }
@@ -231,7 +231,7 @@ const run = async () => {
 
         })
 
-        app.post('/order', async (req, res) => {
+        app.post('/order', verifyjwt, async (req, res) => {
 
             const data = req.body;
             const result = await mobilekitorders.insertOne(data);
@@ -286,7 +286,7 @@ const run = async () => {
 
         })
 
-        app.put('/approveorder/:id', async (req, res) => {
+        app.put('/approveorder/:id', verifyjwt, verifyadmin, async (req, res) => {
             const id = req.params.id;
 
             const query = { _id: objectId(id) }
@@ -315,7 +315,7 @@ const run = async () => {
 
         })
 
-        app.get('/users/:email', async (req, res) => {
+        app.get('/users/:email', verifyjwt, async (req, res) => {
             const email = req.params.email;
 
             const query = { email: email };
