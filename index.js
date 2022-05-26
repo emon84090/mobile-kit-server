@@ -286,7 +286,8 @@ const run = async () => {
 
         })
 
-        app.put('/approveorder/:id', verifyjwt, verifyadmin, async (req, res) => {
+
+        app.put('/approveorder/:id', verifyadmin, async (req, res) => {
             const id = req.params.id;
 
             const query = { _id: objectId(id) }
